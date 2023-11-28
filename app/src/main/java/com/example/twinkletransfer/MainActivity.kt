@@ -8,6 +8,7 @@ import android.content.IntentFilter
 import android.content.pm.PackageManager
 import android.net.wifi.p2p.WifiP2pManager
 import android.os.Bundle
+import android.util.Log
 import android.widget.Toast
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
@@ -29,14 +30,10 @@ import kotlinx.coroutines.launch
 
 class MainActivity : ComponentActivity() {
 
-    //
-    private val intentFilter = IntentFilter()
-
 //  Indicates a change in the Wi-Fi P2P status.
-    private val manager: WifiP2pManager? by lazy(LazyThreadSafetyMode.NONE) {
-        getSystemService(Context.WIFI_P2P_SERVICE) as WifiP2pManager?
-    }
-    private var channel: WifiP2pManager.Channel? = null
+    private lateinit var channel: WifiP2pManager.Channel
+    private lateinit var manager: WifiP2pManager
+
     private var receiver: BroadcastReceiver? = null
 
 
@@ -54,41 +51,41 @@ class MainActivity : ComponentActivity() {
                 }
             }
         }
-        // Indicates a change in the Wi-Fi P2P status.
-        intentFilter.addAction(WifiP2pManager.WIFI_P2P_STATE_CHANGED_ACTION)
-        // Indicates a change in the list of available peers.
-        intentFilter.addAction(WifiP2pManager.WIFI_P2P_PEERS_CHANGED_ACTION)
-        // Indicates the state of Wi-Fi P2P connectivity has changed.
-        intentFilter.addAction(WifiP2pManager.WIFI_P2P_CONNECTION_CHANGED_ACTION)
-        // Indicates this device's details have changed.
-        intentFilter.addAction(WifiP2pManager.WIFI_P2P_THIS_DEVICE_CHANGED_ACTION)
-        channel = manager?.initialize(this, mainLooper, null)
-        receiver = WiFiDirectBroadcastReceiver(manager!!, channel!!, this)
 
-        // check permission
-        if (ActivityCompat.checkSelfPermission(this, Manifest.permission.ACCESS_FINE_LOCATION) != PackageManager.PERMISSION_GRANTED) {
-            ActivityCompat.requestPermissions(this, arrayOf(Manifest.permission.ACCESS_FINE_LOCATION), 0)
+
+        val intentFilter = IntentFilter().apply {
+            addAction(WifiP2pManager.WIFI_P2P_STATE_CHANGED_ACTION)
+            addAction(WifiP2pManager.WIFI_P2P_PEERS_CHANGED_ACTION)
+            addAction(WifiP2pManager.WIFI_P2P_CONNECTION_CHANGED_ACTION)
+            addAction(WifiP2pManager.WIFI_P2P_THIS_DEVICE_CHANGED_ACTION)
         }
-//        manager?.discoverPeers(channel, object : WifiP2pManager.ActionListener {
-//            override fun onSuccess() {
-//                // Code for when the discovery initiation is successful goes here.
-//                // No services have actually been discovered yet, so this method
-//                // can often be left blank.  Code for peer discovery goes in the
-//                // onReceive method, detailed below.
-//                Toast.makeText(this@MainActivity, "onSuccess", Toast.LENGTH_SHORT).show()
-//            }
-//
-//            override fun onFailure(reasonCode: Int) {
-//                // Code for when the discovery initiation fails goes here.
-//                // Alert the user that something went wrong.
-//                Toast.makeText(this@MainActivity, "onFailure", Toast.LENGTH_SHORT).show()
-//
-//            }
-//        })
+
+
+        manager = getSystemService(Context.WIFI_P2P_SERVICE) as WifiP2pManager
+        channel = manager.initialize(this, mainLooper, null)
+
+
+        receiver = WiFiDirectBroadcastReceiver(this)
+        registerReceiver(receiver, intentFilter)
+
+
+        discoverPeers()
+
+
+    }
+
+
+    // 多线程启动discover peers
+    private fun discoverPeers() {
         val job = GlobalScope.launch(Dispatchers.Default) {
             while (isActive) {
-                // 发现操作
-                manager?.discoverPeers(channel, object : WifiP2pManager.ActionListener {
+
+                // check permission
+                if (ActivityCompat.checkSelfPermission(this@MainActivity, Manifest.permission.ACCESS_FINE_LOCATION) != PackageManager.PERMISSION_GRANTED) {
+                    ActivityCompat.requestPermissions(this@MainActivity, arrayOf(Manifest.permission.ACCESS_FINE_LOCATION), 0)
+                }
+
+                val state = manager.discoverPeers(channel, object : WifiP2pManager.ActionListener {
                     override fun onSuccess() {
                         // 处理成功情况
                         Toast.makeText(this@MainActivity, "onSuccess", Toast.LENGTH_SHORT).show()
@@ -97,31 +94,25 @@ class MainActivity : ComponentActivity() {
 
                     override fun onFailure(reasonCode: Int) {
                         // 处理失败情况
-                        Toast.makeText(this@MainActivity, "onFailure", Toast.LENGTH_SHORT).show()
+                        if(reasonCode == WifiP2pManager.P2P_UNSUPPORTED) {
+                            Toast.makeText(this@MainActivity, "P2P_UNSUPPORTED", Toast.LENGTH_SHORT).show()
+                        } else if (reasonCode == WifiP2pManager.ERROR) {
+                            Toast.makeText(this@MainActivity, "ERROR", Toast.LENGTH_SHORT).show()
+                        } else if (reasonCode == WifiP2pManager.BUSY) {
+                            Toast.makeText(this@MainActivity, "BUSY", Toast.LENGTH_SHORT).show()
+                        }else {
+                            Toast.makeText(this@MainActivity, "onFailure", Toast.LENGTH_SHORT).show()
+                        }
                     }
                 })
 
                 // 等待一段时间后再次执行发现操作（比如每隔一段时间）
-                delay(3000) // 10秒钟
+                delay(5000) // 10秒钟
             }
         }
-
-
     }
 
-    override fun onResume() {
-        super.onResume()
-        receiver?.let { receiver ->
-            registerReceiver(receiver, intentFilter)
-        }
-    }
 
-    override fun onPause() {
-        super.onPause()
-        receiver?.let { receiver ->
-            unregisterReceiver(receiver)
-        }
-    }
 }
 
 @Composable

@@ -10,15 +10,10 @@ import android.widget.Toast
 /**
  * A BroadcastReceiver that notifies of important Wi-Fi p2p events.
  */
-class WiFiDirectBroadcastReceiver(
-    private val manager: WifiP2pManager,
-    private val channel: WifiP2pManager.Channel,
-    private val activity: Activity
-) : BroadcastReceiver() {
-
+class WiFiDirectBroadcastReceiver( private val activity: Activity) : BroadcastReceiver() {
     override fun onReceive(context: Context, intent: Intent) {
-        val action: String = intent.action!!
-        when (action) {
+//        val action: String = intent.action!!
+        when (intent.action) {
             WifiP2pManager.WIFI_P2P_STATE_CHANGED_ACTION -> {
                 val state = intent.getIntExtra(WifiP2pManager.EXTRA_WIFI_STATE, -1)
                 when (state) {
