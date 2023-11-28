@@ -10,7 +10,11 @@ import android.widget.Toast
 /**
  * A BroadcastReceiver that notifies of important Wi-Fi p2p events.
  */
-class WiFiDirectBroadcastReceiver( private val activity: Activity) : BroadcastReceiver() {
+class WiFiDirectBroadcastReceiver( private val activity: Activity,
+                                     private val manager: WifiP2pManager,
+                                      private val channel: WifiP2pManager.Channel
+) : BroadcastReceiver() {
+
     override fun onReceive(context: Context, intent: Intent) {
 //        val action: String = intent.action!!
         when (intent.action) {
@@ -19,7 +23,7 @@ class WiFiDirectBroadcastReceiver( private val activity: Activity) : BroadcastRe
                 when (state) {
                     WifiP2pManager.WIFI_P2P_STATE_ENABLED -> {
                         // Wifi P2P is enabled
-                        Toast.makeText(activity, "WIFI_P2P_STATE_ENABLED", Toast.LENGTH_SHORT).show()
+//                        Toast.makeText(activity, "WIFI_P2P_STATE_ENABLED", Toast.LENGTH_SHORT).show()
                     }
                     else -> {
                         // Wi-Fi P2P is not enabled

@@ -30,6 +30,13 @@ import kotlinx.coroutines.launch
 
 class MainActivity : ComponentActivity() {
 
+    private val intentFilter = IntentFilter().apply {
+        addAction(WifiP2pManager.WIFI_P2P_STATE_CHANGED_ACTION)
+        addAction(WifiP2pManager.WIFI_P2P_PEERS_CHANGED_ACTION)
+        addAction(WifiP2pManager.WIFI_P2P_CONNECTION_CHANGED_ACTION)
+        addAction(WifiP2pManager.WIFI_P2P_THIS_DEVICE_CHANGED_ACTION)
+    }
+
 //  Indicates a change in the Wi-Fi P2P status.
     private lateinit var channel: WifiP2pManager.Channel
     private lateinit var manager: WifiP2pManager
@@ -53,32 +60,43 @@ class MainActivity : ComponentActivity() {
         }
 
 
-        val intentFilter = IntentFilter().apply {
-            addAction(WifiP2pManager.WIFI_P2P_STATE_CHANGED_ACTION)
-            addAction(WifiP2pManager.WIFI_P2P_PEERS_CHANGED_ACTION)
-            addAction(WifiP2pManager.WIFI_P2P_CONNECTION_CHANGED_ACTION)
-            addAction(WifiP2pManager.WIFI_P2P_THIS_DEVICE_CHANGED_ACTION)
-        }
-
 
         manager = getSystemService(Context.WIFI_P2P_SERVICE) as WifiP2pManager
         channel = manager.initialize(this, mainLooper, null)
 
-
-        receiver = WiFiDirectBroadcastReceiver(this)
-        registerReceiver(receiver, intentFilter)
+        receiver = WiFiDirectBroadcastReceiver( this, manager, channel)
 
 
-        discoverPeers()
+    }
 
-
+    override fun onResume() {
+        super.onResume()
+        receiver?.also { receiver ->
+            registerReceiver(receiver, intentFilter)
+            discoverPeers()
+        }
+    }
+    override fun onPause() {
+        super.onPause()
+        receiver?.also { receiver ->
+            unregisterReceiver(receiver)
+        }
     }
 
 
     // 多线程启动discover peers
     private fun discoverPeers() {
-        val job = GlobalScope.launch(Dispatchers.Default) {
-            while (isActive) {
+        manager.removeGroup(channel, object : WifiP2pManager.ActionListener {
+            override fun onSuccess() {
+                Toast.makeText(this@MainActivity, "removeGroup onSuccess", Toast.LENGTH_SHORT).show()
+            }
+
+            override fun onFailure(reason: Int) {
+                Toast.makeText(this@MainActivity, "removeGroup onFailure", Toast.LENGTH_SHORT).show()
+            }
+        })
+//        val job = GlobalScope.launch(Dispatchers.Default) {
+//            while (isActive) {
 
                 // check permission
                 if (ActivityCompat.checkSelfPermission(this@MainActivity, Manifest.permission.ACCESS_FINE_LOCATION) != PackageManager.PERMISSION_GRANTED) {
@@ -106,10 +124,10 @@ class MainActivity : ComponentActivity() {
                     }
                 })
 
-                // 等待一段时间后再次执行发现操作（比如每隔一段时间）
-                delay(5000) // 10秒钟
-            }
-        }
+//                // 等待一段时间后再次执行发现操作（比如每隔一段时间）
+//                delay(5000) // 10秒钟
+//            }
+//        }
     }
 
 
