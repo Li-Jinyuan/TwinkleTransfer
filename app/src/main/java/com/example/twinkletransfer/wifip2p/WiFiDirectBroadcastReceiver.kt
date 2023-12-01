@@ -1,5 +1,6 @@
 package com.example.twinkletransfer.wifip2p
 
+import android.annotation.SuppressLint
 import android.app.Activity
 import android.content.BroadcastReceiver
 import android.content.Context
@@ -12,9 +13,11 @@ import android.widget.Toast
  */
 class WiFiDirectBroadcastReceiver( private val activity: Activity,
                                      private val manager: WifiP2pManager,
-                                      private val channel: WifiP2pManager.Channel
+                                      private val channel: WifiP2pManager.Channel,
+                                    private val deviceList: MutableList<String>
 ) : BroadcastReceiver() {
 
+    @SuppressLint("MissingPermission")
     override fun onReceive(context: Context, intent: Intent) {
 //        val action: String = intent.action!!
         when (intent.action) {
@@ -34,6 +37,14 @@ class WiFiDirectBroadcastReceiver( private val activity: Activity,
             WifiP2pManager.WIFI_P2P_PEERS_CHANGED_ACTION -> {
                 // Call WifiP2pManager.requestPeers() to get a list of current peers
                 Toast.makeText(activity, "WIFI_P2P_PEERS_CHANGED_ACTION", Toast.LENGTH_SHORT).show()
+                // 获取设备列表
+                manager.requestPeers(channel) { peers ->
+                    deviceList.clear()
+                    peers.deviceList.forEach {
+                        deviceList.add(it.deviceName)
+                    }
+                    Toast.makeText(activity, deviceList.toString(), Toast.LENGTH_SHORT).show()
+                }
             }
             WifiP2pManager.WIFI_P2P_CONNECTION_CHANGED_ACTION -> {
                 // Respond to new connection or disconnections

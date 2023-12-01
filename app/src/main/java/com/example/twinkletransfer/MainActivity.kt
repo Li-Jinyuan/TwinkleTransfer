@@ -15,10 +15,12 @@ import android.os.Environment
 import android.provider.Settings
 import android.util.Log
 import android.widget.Button
+import android.widget.ListView
 import android.widget.Toast
 import androidx.activity.ComponentActivity
 import androidx.core.app.ActivityCompat
 import com.example.twinkletransfer.wifip2p.WiFiDirectBroadcastReceiver
+import com.example.twinkletransfer.wifip2p.WifiListViewAdapter
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.GlobalScope
 import kotlinx.coroutines.delay
@@ -53,7 +55,7 @@ class MainActivity : ComponentActivity() {
 
         manager = getSystemService(Context.WIFI_P2P_SERVICE) as WifiP2pManager
         channel = manager.initialize(this, mainLooper, null)
-        receiver = WiFiDirectBroadcastReceiver(this, manager, channel)
+        receiver = WiFiDirectBroadcastReceiver(this, manager, channel, deviceList)
 
         manager.cancelConnect(channel, null)
         manager.removeGroup(channel, null)
@@ -93,6 +95,10 @@ class MainActivity : ComponentActivity() {
                 Toast.makeText(this@MainActivity, "停止", Toast.LENGTH_SHORT).show()
             }
         }
+        // 关联到listView
+        val myListView = findViewById<ListView>(R.id.listView)
+        // 设置myListView的适配器
+        myListView.adapter = WifiListViewAdapter(this, deviceList)
 
 
     }
