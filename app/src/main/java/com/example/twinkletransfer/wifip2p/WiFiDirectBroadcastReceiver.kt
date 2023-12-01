@@ -36,14 +36,14 @@ class WiFiDirectBroadcastReceiver( private val activity: Activity,
             }
             WifiP2pManager.WIFI_P2P_PEERS_CHANGED_ACTION -> {
                 // Call WifiP2pManager.requestPeers() to get a list of current peers
-                Toast.makeText(activity, "WIFI_P2P_PEERS_CHANGED_ACTION", Toast.LENGTH_SHORT).show()
+//                Toast.makeText(activity, "WIFI_P2P_PEERS_CHANGED_ACTION", Toast.LENGTH_SHORT).show()
                 // 获取设备列表
                 manager.requestPeers(channel) { peers ->
                     deviceList.clear()
                     peers.deviceList.forEach {
                         deviceList.add(it.deviceName)
                     }
-                    Toast.makeText(activity, deviceList.toString(), Toast.LENGTH_SHORT).show()
+//                    Toast.makeText(activity, deviceList.toString(), Toast.LENGTH_SHORT).show()
                 }
             }
             WifiP2pManager.WIFI_P2P_CONNECTION_CHANGED_ACTION -> {

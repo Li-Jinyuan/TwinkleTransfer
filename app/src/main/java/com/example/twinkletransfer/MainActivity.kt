@@ -8,6 +8,8 @@ import android.content.Intent
 import android.content.IntentFilter
 import android.content.pm.PackageManager
 import android.net.Uri
+import android.net.wifi.p2p.WifiP2pConfig
+import android.net.wifi.p2p.WifiP2pDevice
 import android.net.wifi.p2p.WifiP2pManager
 import android.os.Build
 import android.os.Bundle
@@ -47,6 +49,8 @@ class MainActivity : ComponentActivity() {
 
     // 设备列表
     private var deviceList = mutableListOf<String>()
+    private var listAdapter: WifiListViewAdapter? = null
+
 
 
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -59,6 +63,9 @@ class MainActivity : ComponentActivity() {
 
         manager.cancelConnect(channel, null)
         manager.removeGroup(channel, null)
+        listAdapter = WifiListViewAdapter(this, deviceList)
+
+
 
 
     }
@@ -78,6 +85,7 @@ class MainActivity : ComponentActivity() {
     }
 
     //init view
+    @SuppressLint("MissingPermission")
     override fun onStart() {
         super.onStart()
 
@@ -95,11 +103,19 @@ class MainActivity : ComponentActivity() {
                 Toast.makeText(this@MainActivity, "停止", Toast.LENGTH_SHORT).show()
             }
         }
-        // 关联到listView
+        listAdapter?.notifyDataSetChanged()
+//        // 关联到listView
         val myListView = findViewById<ListView>(R.id.listView)
         // 设置myListView的适配器
-        myListView.adapter = WifiListViewAdapter(this, deviceList)
+        myListView.adapter = listAdapter
 
+        // 点击事件
+        myListView.setOnItemClickListener { _, _, position, _ ->
+            val clickedItem: String = deviceList[position]
+            Toast.makeText(this@MainActivity, clickedItem, Toast.LENGTH_SHORT).show()
+
+
+        }
 
     }
 
@@ -137,6 +153,8 @@ class MainActivity : ComponentActivity() {
             override fun onSuccess() {
                 // 处理成功情况
                 Toast.makeText(this@MainActivity, "onSuccess", Toast.LENGTH_SHORT).show()
+                listAdapter?.notifyDataSetChanged()
+
 
             }
 
@@ -190,4 +208,3 @@ class MainActivity : ComponentActivity() {
     }
 
 }
-
