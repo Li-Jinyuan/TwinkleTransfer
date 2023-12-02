@@ -8,8 +8,10 @@ import android.content.Intent
 import android.content.IntentFilter
 import android.content.pm.PackageManager
 import android.net.Uri
+import android.net.wifi.WpsInfo
 import android.net.wifi.p2p.WifiP2pConfig
 import android.net.wifi.p2p.WifiP2pDevice
+import android.net.wifi.p2p.WifiP2pDeviceList
 import android.net.wifi.p2p.WifiP2pManager
 import android.os.Build
 import android.os.Bundle
@@ -42,13 +44,67 @@ class MainActivity : ComponentActivity() {
     private lateinit var channel: WifiP2pManager.Channel
     private lateinit var manager: WifiP2pManager
 
-    private var receiver: BroadcastReceiver? = null
+    private var receiver = object  : BroadcastReceiver() {
+        @SuppressLint("MissingPermission")
+        override fun onReceive(context: Context, intent: Intent) {
+//        val action: String = intent.action!!
+            when (intent.action) {
+                WifiP2pManager.WIFI_P2P_STATE_CHANGED_ACTION -> {
+                    val state = intent.getIntExtra(WifiP2pManager.EXTRA_WIFI_STATE, -1)
+                    when (state) {
+                        WifiP2pManager.WIFI_P2P_STATE_ENABLED -> {
+                            // Wifi P2P is enabled
+//                        Toast.makeText(activity, "WIFI_P2P_STATE_ENABLED", Toast.LENGTH_SHORT).show()
+                        }
+
+                        else -> {
+                            // Wi-Fi P2P is not enabled
+                            Toast.makeText( this@MainActivity , "WIFI_P2P_STATE_DISABLED", Toast.LENGTH_SHORT)
+                                .show()
+                        }
+                    }
+                }
+
+                WifiP2pManager.WIFI_P2P_PEERS_CHANGED_ACTION -> {
+                    // Call WifiP2pManager.requestPeers() to get a list of current peers
+//                Toast.makeText(activity, "WIFI_P2P_PEERS_CHANGED_ACTION", Toast.LENGTH_SHORT).show()
+                    // 获取设备列表
+                    deviceList.clear()
+                    deviceNameList.clear()
+                    manager.requestPeers(channel) { peers ->
+                        // TODO 传输peers给deviceList
+                        for (device in peers.deviceList) {
+
+                            deviceList.add(device)
+                            deviceNameList.add(device.deviceName)
+                        }
+
+//                    Toast.makeText(activity, deviceList.toString(), Toast.LENGTH_SHORT).show()
+                    }
+                    listAdapter?.notifyDataSetChanged()
+                }
+
+                WifiP2pManager.WIFI_P2P_CONNECTION_CHANGED_ACTION -> {
+                    // Respond to new connection or disconnections
+                    Toast.makeText(this@MainActivity, "WIFI_P2P_CONNECTION_CHANGED_ACTION", Toast.LENGTH_SHORT)
+                        .show()
+                }
+
+                WifiP2pManager.WIFI_P2P_THIS_DEVICE_CHANGED_ACTION -> {
+                    // Respond to this device's wifi state changing
+                    Toast.makeText(this@MainActivity, "WIFI_P2P_THIS_DEVICE_CHANGED_ACTION", Toast.LENGTH_SHORT)
+                        .show()
+                }
+            }
+        }
+    }
 
     // 按钮
     private var buttonState = false
 
     // 设备列表
-    private var deviceList = mutableListOf<String>()
+    private var deviceList = mutableListOf<WifiP2pDevice>()
+    private var deviceNameList = mutableListOf<String>()
     private var listAdapter: WifiListViewAdapter? = null
 
 
@@ -59,11 +115,11 @@ class MainActivity : ComponentActivity() {
 
         manager = getSystemService(Context.WIFI_P2P_SERVICE) as WifiP2pManager
         channel = manager.initialize(this, mainLooper, null)
-        receiver = WiFiDirectBroadcastReceiver(this, manager, channel, deviceList)
+//        receiver = WiFiDirectBroadcastReceiver(this, manager, channel, deviceList, deviceNameList)
 
         manager.cancelConnect(channel, null)
         manager.removeGroup(channel, null)
-        listAdapter = WifiListViewAdapter(this, deviceList)
+        listAdapter = WifiListViewAdapter(this, deviceNameList)
 
 
 
@@ -111,8 +167,28 @@ class MainActivity : ComponentActivity() {
 
         // 点击事件
         myListView.setOnItemClickListener { _, _, position, _ ->
-            val clickedItem: String = deviceList[position]
-            Toast.makeText(this@MainActivity, clickedItem, Toast.LENGTH_SHORT).show()
+            // 获取点击的设备
+            val device: WifiP2pDevice = deviceList[position]
+            // 获取设备的地址
+            val deviceAddress: String = device.deviceAddress
+            // 创建一个配置
+            val config = WifiP2pConfig()
+            // 设置要连接的设备的地址
+            config.deviceAddress = deviceAddress
+            // 设置WPA2的加密方式
+            config.wps.setup = WpsInfo.PBC
+            // 连接设备
+            manager.connect(channel, config, object : WifiP2pManager.ActionListener {
+                override fun onSuccess() {
+                    // 连接成功
+                    Toast.makeText(this@MainActivity, "连接成功", Toast.LENGTH_SHORT).show()
+                }
+
+                override fun onFailure(reason: Int) {
+                    // 连接失败
+                    Toast.makeText(this@MainActivity, "连接失败", Toast.LENGTH_SHORT).show()
+                }
+            })
 
 
         }
